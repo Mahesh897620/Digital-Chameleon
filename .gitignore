@@ -1,0 +1,29 @@
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# pytest / test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Runtime data
+deepfake-deflector/data/threat_log.json
+deepfake-deflector/screenshots/*.png
+
+# OS files
+Thumbs.db

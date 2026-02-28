@@ -1,0 +1,19 @@
+# Core (required)
+opencv-python
+numpy
+
+# Face detection
+mediapipe
+
+# Adversarial audio
+scipy
+pyaudio
+
+# Virtual camera
+pyvirtualcam
+
+# Dashboard
+streamlit
+
+# Image utilities (used by mediapipe internals)
+Pillow

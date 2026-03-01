@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r deepfake-deflector/requirements.txt
+      - name: Run tests
+        run: |
+          cd deepfake-deflector
+          python3 test_shield.py
+          python3 test_dual_mode.py
+          python3 test_runner.py
+          python3 test_vcam.py
+          python3 test_voice.py
+          python3 test_dashboard.py

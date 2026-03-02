@@ -78,7 +78,8 @@ class FaceProcessor:
     def __init__(self) -> None:
         self._available = False
         self._landmarker = None
-        self._frame_ts = 0  # monotonic timestamp in ms for VIDEO mode
+        self._frame_ts: int = 0   # last sent timestamp in ms
+        self._t0_ms: Optional[int] = None  # wall-clock origin for timestamps
 
         if not _HAS_MEDIAPIPE:
             print("[WARN] mediapipe not installed — face detection disabled.")
@@ -98,10 +99,10 @@ class FaceProcessor:
                 base_options=BaseOptions(model_asset_path=_MODEL_PATH),
                 running_mode=VisionRunningMode.VIDEO,
                 num_faces=1,
-                min_face_detection_confidence=0.7,
-                min_face_presence_confidence=0.7,
-                min_tracking_confidence=0.7,
-                output_face_blendshapes=False,
+                min_face_detection_confidence=0.5,
+                min_face_presence_confidence=0.5,
+                min_tracking_confidence=0.5,
+                output_face_blendshapes=True,
                 output_facial_transformation_matrixes=False,
             )
             self._landmarker = FaceLandmarker.create_from_options(options)
@@ -129,27 +130,48 @@ class FaceProcessor:
         if not self._available:
             return False, [], None
 
-        h, w, _ = frame.shape
+        import time as _time
+
+        orig_h, orig_w = frame.shape[:2]
+
+        # --- Downscale to at most 640 px wide for faster MediaPipe inference.
+        # Landmark coordinates are normalised [0,1] so we multiply by the
+        # *original* dimensions to get pixel coords in the original frame.
+        _MAX_W = 640
+        if orig_w > _MAX_W:
+            proc_w = _MAX_W
+            proc_h = int(orig_h * _MAX_W / orig_w)
+            proc_frame = cv2.resize(frame, (proc_w, proc_h))
+        else:
+            proc_frame = frame
 
         # Convert BGR → RGB and wrap in a mediapipe Image
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
-        # Advance the monotonic timestamp
-        self._frame_ts += 33  # ~30 fps step
-        result = self._landmarker.detect_for_video(mp_image, self._frame_ts)
+        # Use real wall-clock timestamps (strictly monotonically increasing ms).
+        # This avoids MediaPipe VIDEO-mode errors when frame delivery is uneven.
+        if self._t0_ms is None:
+            self._t0_ms = int(_time.monotonic() * 1000)
+        wall_ts = int(_time.monotonic() * 1000) - self._t0_ms + 1
+        ts_ms = max(wall_ts, self._frame_ts + 1)  # guarantee strict increase
+        self._frame_ts = ts_ms
+
+        result = self._landmarker.detect_for_video(mp_image, ts_ms)
 
         if not result.face_landmarks:
             return False, [], None
 
         face_lm = result.face_landmarks[0]
 
-        # Convert normalised landmarks → pixel coordinates
+        # Convert normalised landmarks → pixel coordinates in the *original* frame.
+        # Because lm.x / lm.y are normalised in [0,1], multiplying by the original
+        # frame dimensions directly gives the correct original-resolution coords.
         landmarks: List[Tuple[int, int]] = []
         xs: List[int] = []
         ys: List[int] = []
         for lm in face_lm:
-            px, py = int(lm.x * w), int(lm.y * h)
+            px, py = int(lm.x * orig_w), int(lm.y * orig_h)
             landmarks.append((px, py))
             xs.append(px)
             ys.append(py)

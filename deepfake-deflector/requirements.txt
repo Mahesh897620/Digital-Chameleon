@@ -1,19 +1,24 @@
-# Core (required)
+# ── Core (required) ───────────────────────────────────────────────────
 opencv-python
 numpy
 
-# Face detection
+# ── Face detection ────────────────────────────────────────────────────
 mediapipe
 
-# Adversarial audio
+# ── Adversarial audio ─────────────────────────────────────────────────
 scipy
 pyaudio
 
-# Virtual camera
+# ── Virtual camera output ─────────────────────────────────────────────
+# Install OBS Studio first (provides the virtual camera driver), then:
 pyvirtualcam
 
-# Dashboard
+# ── Dashboard ─────────────────────────────────────────────────────────
 streamlit
 
-# Image utilities (used by mediapipe internals)
+# ── Image utilities ───────────────────────────────────────────────────
 Pillow
+
+# ── Recording detection ───────────────────────────────────────────────
+# psutil: cross-platform process scanner (detects Zoom/OBS/ffmpeg etc.)
+psutil
